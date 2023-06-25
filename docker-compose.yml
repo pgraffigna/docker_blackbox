@@ -1,0 +1,52 @@
+version: '3.7'
+
+networks:
+  black-net:
+    name: black-net
+    driver: bridge
+
+volumes:
+  grafana_data:
+    name: grafana_data
+    driver: local
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - black-net
+    privileged: true
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    restart: always
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox
+    networks:
+      - black-net
+    privileged: true
+    cap_add:
+      - NET_RAW # dependencia
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml
+    ports:
+      - 9115:9115
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+      - black-net
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=password123
